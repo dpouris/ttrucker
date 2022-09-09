@@ -36,7 +36,7 @@ fn parse_input(input: &str) -> Option<Function> {
         "2" => Some(Function::View),
         "3" => Some(Function::Edit),
         "4" => Some(Function::Remove),
-        "q" => Some(Function::Quit),
+        "5" => Some(Function::Quit),
         _ => None,
     }
 }
@@ -73,7 +73,7 @@ fn main() {
             loop {
                 clear();
                 println!(
-                    "1. Add expense\n2. View expense\n3. Edit expense\n4. Remove expense\nq: Quit"
+                    "1. Add expense\n2. View expenses\n3. Edit expense\n4. Remove expense\n5. Quit"
                 );
 
                 if !err.is_empty() {
