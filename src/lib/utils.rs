@@ -14,17 +14,17 @@ macro_rules! either {
 
 #[macro_export]
 macro_rules! printil {
-
+    
     ($x:tt) => {
         use std::io::{stdout, Write};
         print!("{}",$x);
-        _ = stdout().flush();
+        stdout().flush();
     };
 
     ($($x:tt)+$($i:ident),*) => {
         use std::io::{stdout, Write};
         print!($($x)+, $($i)*);
-        _ = stdout().flush();
+        stdout().flush();
     };
 }
 
