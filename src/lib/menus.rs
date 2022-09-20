@@ -1,86 +1,178 @@
+#![allow(unused)]
+
 use crate::{either, manager, printil, utils::*};
+use console::{Key, Term};
 
-pub fn open_add_menu(manager: &mut manager::Manager) {
-    let mut expense_name = "".to_string();
-    let mut expense_amount = 0;
-
-    clear();
-    printil!("Press \"a\" to add an expense or any key to quit ");
-    if let Ok(cmd) = get_input() {
-        if cmd.as_str() != "a" {
-            return;
-        }
-    }
-
-    loop {
-        clear();
-        println!("ADD EXPENSE\n");
-
-        if expense_name.is_empty() {
-            printil!("Expense name ");
-            let res = get_input();
-
-            if let Ok(cmd) = res {
-                expense_name = either!(cmd.trim().len() == 0, String::from(""); cmd);
-                // expense_name = if cmd.len() == 0 { "".to_string() } else { cmd };
-                continue;
+macro_rules! select {
+    ($key: ident, $idx: ident, $max_idx: expr, $($highlight: tt)*) => {
+            match $key {
+                Key::ArrowUp => {
+                    if $idx > 1 {
+                        $idx -= 1;
+                        $($highlight)*($idx)
+                    }
+                }
+                Key::ArrowDown => {
+                    if $idx != $max_idx as i32 {
+                        $idx += 1;
+                        $($highlight)*($idx)
+                    }
+                }
+                Key::Enter => break,
+                _ => (),
             }
-        }
+    };
 
-        if expense_amount == 0 {
-            printil!("Expense amount ");
-            let res = get_input();
-
-            if let Ok(cmd) = res {
-                expense_amount = cmd.parse::<i32>().unwrap_or_default();
-                continue;
+    ($key: ident, $idx: ident, $max_idx: tt) => {
+            match $key {
+                Key::ArrowUp => {
+                    if $idx > 1 {
+                        $idx -= 1;
+                    }
+                }
+                Key::ArrowDown => {
+                    if $idx != $max_idx as i32 {
+                        $idx += 1;
+                    }
+                }
+                Key::Enter => break,
+                _ => (),
             }
-        }
-
-        manager.add_expense(&expense_name, expense_amount);
-        println!("Added expense {expense_name} with amount {expense_amount}");
-        std::thread::sleep(std::time::Duration::new(3, 0));
-        break;
+        $idx
     }
 }
 
-pub fn open_view_menu(manager: &mut manager::Manager) {
-    loop {
-        clear();
+pub struct Menu {
+    pub selected: i32,
+    pub options: Vec<String>,
+    term: Term,
+}
 
-        let expenses = manager.view_expenses();
-        let total_amount = expenses_total(&expenses);
-        println!("VIEW EXPENSES\t\tTOTAL: {total_amount}\n");
+impl Menu {
+    fn show_menu(menu: Vec<String>) {
+        println!("{}\r", menu.join("\n"));
+    }
 
-        view_expenses(&expenses);
+    pub fn new() -> Self {
+        let menu = Self {
+            options: vec![
+                " Add expense ".to_owned(),
+                " View expenses ".to_owned(),
+                " Edit expense ".to_owned(),
+                " Remove expense ".to_owned(),
+                " Quit ".to_owned(),
+            ],
+            selected: 1,
+            term: Term::stdout(),
+        };
 
-        printil!("Press \"q\" to quit ");
-        let input = get_input();
+        menu
+    }
 
-        if let Ok(cmd) = input {
-            if cmd == "q" {
-                break;
+    pub fn highlight(&mut self, option_number: i32) {
+        self.term.clear_screen();
+        let mut menu_copy = self.options.clone();
+        menu_copy[option_number as usize - 1] =
+            format!("[{}]", menu_copy[option_number as usize - 1].trim());
+        self.selected = option_number as i32;
+        Self::show_menu(menu_copy);
+    }
+
+    pub fn select_menu_option(&mut self) -> String {
+        let mut idx = self.selected;
+
+        self.term.hide_cursor();
+
+        loop {
+            let key = self.term.read_key().unwrap();
+            select!(key, idx, self.options.len(), self.highlight);
+        }
+
+        self.term.show_cursor();
+        self.selected.to_string()
+    }
+
+    pub fn open_add(&mut self, manager: &mut manager::Manager) {
+        let mut expense_name = "".to_string();
+        let mut expense_amount = 0;
+        self.term.clear_screen();
+        printil!("Press \"a\" to add an expense or any key to quit ");
+        if let Ok(cmd) = get_input() {
+            if cmd.as_str() != "a" {
+                return;
+            }
+        }
+
+        loop {
+            self.term.clear_screen();
+            println!("ADD EXPENSE\n");
+
+            if expense_name.is_empty() {
+                printil!("Expense name ");
+                let res = get_input();
+
+                if let Ok(cmd) = res {
+                    expense_name = either!(cmd.trim().len() == 0, String::from(""); cmd);
+                    // expense_name = if cmd.len() == 0 { "".to_string() } else { cmd };
+                    continue;
+                }
+            }
+
+            if expense_amount == 0 {
+                printil!("Expense amount ");
+                let res = get_input();
+
+                if let Ok(cmd) = res {
+                    expense_amount = cmd.parse::<i32>().unwrap_or_default();
+                    continue;
+                }
+            }
+
+            manager.add_expense(&expense_name, expense_amount);
+            println!("Added expense {expense_name} with amount {expense_amount}");
+            std::thread::sleep(std::time::Duration::new(3, 0));
+            break;
+        }
+    }
+
+    pub fn open_view(&mut self, manager: &mut manager::Manager) {
+        loop {
+            self.term.clear_screen();
+
+            let expenses = manager.view_expenses();
+            let total_amount = expenses_total(&expenses);
+            println!("VIEW EXPENSES\t\tTOTAL: {total_amount}\n");
+
+            view_expenses(&expenses);
+
+            printil!("Press \"q\" to quit ");
+            let input = get_input();
+
+            if let Ok(cmd) = input {
+                if cmd == "q" {
+                    break;
+                }
             }
         }
     }
-}
 
-pub fn open_remove_menu(manager: &mut manager::Manager) {
-    loop {
-        clear();
-        println!("REMOVE EXPENSE\n");
+    pub fn open_remove(&mut self, manager: &mut manager::Manager) {
+        loop {
+            self.term.clear_screen();
+            println!("REMOVE EXPENSE\n");
 
-        let expenses = manager.view_expenses();
-        view_expenses(&expenses);
+            let expenses = manager.view_expenses();
+            view_expenses(&expenses);
 
-        printil!("Choose an expense by id to remove or press \"q\" to quit ");
-        let input = get_input();
+            printil!("Choose an expense by id to remove or press \"q\" to quit ");
+            let input = get_input();
 
-        if let Ok(cmd) = input {
-            if cmd == "q" {
-                break;
+            if let Ok(cmd) = input {
+                if cmd == "q" {
+                    break;
+                }
+                manager.remove_expense(&cmd);
             }
-            manager.remove_expense(&cmd);
         }
     }
 }

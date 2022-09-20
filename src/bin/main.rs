@@ -19,7 +19,7 @@
 // 4. Enter a menu that lists all the expenses along with indicative numbers to choose in order to delete it (remove from db after)
 // NOTE: When the user is in the main menu show the total of all expenses
 
-use lib::{manager, menus, utils::*};
+use lib::{manager, menus::*};
 use std::{fs, process};
 
 enum Function {
@@ -67,40 +67,22 @@ fn main() {
         // check if user has a expenses/db.sqlite if he doesn't create it
         let manager_res = prepare_manager(&path_to_sqlite, &home);
         if let Ok(man) = manager_res {
+            let mut menu = Menu::new();
             let mut manager = man;
-            let mut err = "";
 
             loop {
-                clear();
-                println!(
-                    "1. Add expense\n2. View expenses\n3. Edit expense\n4. Remove expense\n5. Quit"
-                );
+                menu.highlight(1);
 
-                if !err.is_empty() {
-                    println!("{}", err);
-                }
-
-                err = "";
-                let res = get_input();
-                if res.is_err() {
-                    continue;
-                }
-
-                let opt = Some(1);
-                let _ = opt.filter(|x| *x > 0);
-                let func = parse_input(res.unwrap_or_else(|_| String::new()).as_str());
-                if let None = func {
-                    err = "Invalid input";
-                    continue;
-                }
+                let opt = menu.select_menu_option();
+                let func = parse_input(opt.as_str());
 
                 match func.unwrap() {
-                    Function::Add => menus::open_add_menu(&mut manager),
-                    Function::View => menus::open_view_menu(&mut manager),
+                    Function::Add => menu.open_add(&mut manager),
+                    Function::View => menu.open_view(&mut manager),
                     Function::Edit => (),
-                    Function::Remove => menus::open_remove_menu(&mut manager),
+                    Function::Remove => menu.open_remove(&mut manager),
                     Function::Quit => {
-                        clear();
+                        process::Command::new("clear").spawn();
                         break;
                     }
                 }

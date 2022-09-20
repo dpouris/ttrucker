@@ -14,7 +14,7 @@ macro_rules! either {
 
 #[macro_export]
 macro_rules! printil {
-    
+
     ($x:tt) => {
         use std::io::{stdout, Write};
         print!("{}",$x);
@@ -37,16 +37,6 @@ pub fn get_input() -> Result<String> {
     Ok(buffer.trim().to_owned())
 }
 
-pub fn clear() {
-    // let child = std::process::Command::new("clear").spawn();
-    printil!("\r\x1b[2J\r\x1b[H");
-
-    // if child.is_ok() {
-    //     let _exit_status = child.unwrap().wait();
-    // }
-}
-
-// pub fn printil(string: &str) {
-//     print!("{string}");
-//     _ = std::io::stdout().flush();
+// pub fn clear() {
+//     printil!("\r\x1b[2J\r\x1b[H");
 // }
