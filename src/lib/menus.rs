@@ -1,46 +1,7 @@
 #![allow(unused)]
 
-use crate::{either, manager, printil, utils::*};
+use crate::{either, printil, select, utils::{clear_term, get_input}, manager};
 use console::{Key, Term};
-
-macro_rules! select {
-    ($key: ident, $idx: ident, $max_idx: expr, $($highlight: tt)*) => {
-            match $key {
-                Key::ArrowUp => {
-                    if $idx > 1 {
-                        $idx -= 1;
-                        $($highlight)*($idx)
-                    }
-                }
-                Key::ArrowDown => {
-                    if $idx != $max_idx as i32 {
-                        $idx += 1;
-                        $($highlight)*($idx)
-                    }
-                }
-                Key::Enter => break,
-                _ => (),
-            }
-    };
-
-    ($key: ident, $idx: ident, $max_idx: tt) => {
-            match $key {
-                Key::ArrowUp => {
-                    if $idx > 1 {
-                        $idx -= 1;
-                    }
-                }
-                Key::ArrowDown => {
-                    if $idx != $max_idx as i32 {
-                        $idx += 1;
-                    }
-                }
-                Key::Enter => break,
-                _ => (),
-            }
-        $idx
-    }
-}
 
 pub struct Menu {
     pub selected: i32,
@@ -56,11 +17,11 @@ impl Menu {
     pub fn new() -> Self {
         let menu = Self {
             options: vec![
-                " Add expense ".to_owned(),
-                " View expenses ".to_owned(),
-                " Edit expense ".to_owned(),
-                " Remove expense ".to_owned(),
-                " Quit ".to_owned(),
+                "Add expense".to_owned(),
+                "View expenses".to_owned(),
+                "Edit expense".to_owned(),
+                "Remove expense".to_owned(),
+                "Quit".to_owned(),
             ],
             selected: 1,
             term: Term::stdout(),
@@ -70,10 +31,10 @@ impl Menu {
     }
 
     pub fn highlight(&mut self, option_number: i32) {
-        self.term.clear_screen();
+        clear_term();
         let mut menu_copy = self.options.clone();
         menu_copy[option_number as usize - 1] =
-            format!("[{}]", menu_copy[option_number as usize - 1].trim());
+            format!("\x1b[47m{}\x1b[0m", menu_copy[option_number as usize - 1].trim());
         self.selected = option_number as i32;
         Self::show_menu(menu_copy);
     }
@@ -95,7 +56,7 @@ impl Menu {
     pub fn open_add(&mut self, manager: &mut manager::Manager) {
         let mut expense_name = "".to_string();
         let mut expense_amount = 0;
-        self.term.clear_screen();
+        clear_term();
         printil!("Press \"a\" to add an expense or any key to quit ");
         if let Ok(cmd) = get_input() {
             if cmd.as_str() != "a" {
@@ -104,7 +65,7 @@ impl Menu {
         }
 
         loop {
-            self.term.clear_screen();
+            clear_term();
             println!("ADD EXPENSE\n");
 
             if expense_name.is_empty() {
@@ -137,7 +98,7 @@ impl Menu {
 
     pub fn open_view(&mut self, manager: &mut manager::Manager) {
         loop {
-            self.term.clear_screen();
+            clear_term();
 
             let expenses = manager.view_expenses();
             let total_amount = expenses_total(&expenses);
@@ -158,7 +119,7 @@ impl Menu {
 
     pub fn open_remove(&mut self, manager: &mut manager::Manager) {
         loop {
-            self.term.clear_screen();
+            clear_term();
             println!("REMOVE EXPENSE\n");
 
             let expenses = manager.view_expenses();
@@ -207,5 +168,6 @@ fn view_expenses(expenses: &[sqlite::Row]) {
 
         println!("{row}")
     }
-    println!()
+    println!();
+
 }
