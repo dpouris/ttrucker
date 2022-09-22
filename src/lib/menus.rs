@@ -1,10 +1,8 @@
-// #![allow(unused)]
-
-use std::{vec};
+use std::vec;
 
 use crate::{
     either,
-    manager::{Manager},
+    manager::Manager,
     printil, select,
     utils::{clear_term, get_input, hide_cursor, show_cursor},
 };
@@ -108,7 +106,7 @@ impl Menu {
             let total_amount = expenses_total(&expenses);
             println!("\x1b[43m VIEW EXPENSES \x1b[0m\t\tTOTAL: {total_amount}\n");
 
-            show_expenses(&expenses, 0);
+            show_expenses(&expenses, 0, true);
             printil!("\nPress \x1b[33mENTER\x1b[0m to go back");
 
             let input = get_input();
@@ -130,7 +128,7 @@ impl Menu {
             println!("\x1b[43m REMOVE EXPENSE \x1b[0m\n");
 
             let expenses = self.manager.view_expenses();
-            show_expenses(&expenses, highlight_idx);
+            show_expenses(&expenses, highlight_idx, false);
 
             expense_ids = get_expense_ids(&expenses);
             printil!("\nPress \x1b[31mENTER\x1b[0m to delete the selected expense or \x1b[33mESC\x1b[0m to exit");
@@ -166,10 +164,10 @@ fn expenses_total(expenses: &Vec<sqlite::Row>) -> i32 {
         .sum()
 }
 
-fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32) {
+fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32, no_highlight: bool) {
     let mut rows = get_expenses_vec(expenses);
-
-    if rows.len() > 0 {
+    
+    if !no_highlight && rows.len() > 0 {
         rows[highlight_idx as usize] =
             format!("\x1b[43m\x1b[30m {} \x1b[0m", rows[highlight_idx as usize]);
     }
