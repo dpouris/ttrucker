@@ -76,7 +76,6 @@ fn main() {
 
             loop {
                 menu.highlight(1);
-
                 let opt = menu.select_menu_option();
                 let func = parse_input(opt.as_str());
 

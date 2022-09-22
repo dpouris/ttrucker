@@ -28,12 +28,15 @@ impl Manager {
     }
 
     pub fn get_single_expense(&mut self, expense_id: &str) -> sqlite::Row {
-        self.db.select_from_limit("expenses", expense_id, 1).unwrap()
+        self.db
+            .select_from_limit("expenses", expense_id, 1)
+            .unwrap()
     }
 
-    pub fn edit_expense(&mut self, expense_id: &str, to_set: &[&str;2]) {
-        let field_val = either!(to_set[0] == "name", format!("'{}'",to_set[1]); to_set[1].to_owned());
-        let fields: [&str;2] = [to_set[0], &field_val];
+    pub fn edit_expense(&mut self, expense_id: &str, to_set: &[&str; 2]) {
+        let field_val =
+            either!(to_set[0] == "name", format!("'{}'",to_set[1]); to_set[1].to_owned());
+        let fields: [&str; 2] = [to_set[0], &field_val];
         self.db.update_where("expenses", expense_id, &fields);
     }
 

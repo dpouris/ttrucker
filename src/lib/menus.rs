@@ -1,4 +1,4 @@
-use std::{vec, thread::sleep, time::Duration};
+use std::vec;
 
 use crate::{
     either,
@@ -35,6 +35,7 @@ impl Menu {
 
     pub fn highlight(&mut self, option_number: i32) {
         clear_term();
+        println!("\x1b[4mMENU\x1b[0m");
         let mut menu_copy = self.options.clone();
         menu_copy[option_number as usize - 1] = format!(
             "\x1b[43m\x1b[30m{}\x1b[0m",
@@ -112,32 +113,31 @@ impl Menu {
             let key = self.term.read_key();
 
             if let Ok(_) = key {
-                break
+                break;
             }
         }
     }
 
     pub fn open_edit(&mut self) {
         let mut highlight_idx = 0;
-        
+
         loop {
             let expenses = self.manager.get_expenses();
             let expense_ids = get_expense_ids(&expenses);
             let expenses_len = expenses.len();
             clear_term();
             println!("\x1b[43m EDIT EXPENSE \x1b[0m\n");
-            
+
             show_expenses(&expenses, highlight_idx, false);
             printil!("\nPress \x1b[33mENTER\x1b[0m to edit the selected expense or \x1b[33mESC\x1b[0m to exit");
-            
+
             let key = self.term.read_key().unwrap();
-            
+
             let to_edit = select!(key, highlight_idx, expenses_len);
             if key == Key::Escape {
                 return;
             }
 
-            
             if let Some(item_idx) = to_edit {
                 let expense_id = expense_ids[item_idx as usize].clone();
                 if expenses_len > 0 {
@@ -164,7 +164,6 @@ impl Menu {
 
             printil!("\nPress \x1b[31mENTER\x1b[0m to delete the selected expense or \x1b[33mESC\x1b[0m to exit");
 
-
             let key = self.term.read_key().unwrap();
             let to_delete = select!(key, highlight_idx, expenses_len);
             if key == Key::Escape {
@@ -190,15 +189,27 @@ impl Menu {
         loop {
             clear_term();
             let mut expense_cp = expense.clone();
-            expense_cp[highlight as usize] = format!("\x1b[47m{}\x1b[0m",expense_cp[highlight as usize]); 
+            expense_cp[highlight as usize] =
+                format!("\x1b[47m{}\x1b[0m", expense_cp[highlight as usize]);
             println!(" {} \n {}", expense_cp[0], expense_cp[1]);
             let key = self.term.read_key().unwrap();
 
             let edit_field = select!(key, highlight, 2);
-            
+
             if let Some(field) = edit_field {
-                let new_field_value = self.term.read_line_initial_text(&expense[highlight as usize]).unwrap();
-                self.manager.edit_expense(&expense_id, &[if field == 0 {"name"} else {"amount"}, new_field_value.as_str()]);
+                show_cursor();
+                let new_field_value = self
+                    .term
+                    .read_line_initial_text(&expense[highlight as usize])
+                    .unwrap();
+                hide_cursor();
+                self.manager.edit_expense(
+                    &expense_id,
+                    &[
+                        if field == 0 { "name" } else { "amount" },
+                        new_field_value.as_str(),
+                    ],
+                );
                 break;
             }
         }
@@ -208,7 +219,7 @@ impl Menu {
 fn expenses_total(expenses: &Vec<sqlite::Row>) -> i32 {
     expenses
         .iter()
-        .map(|row| row.try_get::<i64, usize>(2).unwrap_or_default() as i32)
+        .map(|row| row.try_get::<i64, &str>("amount").unwrap_or_default() as i32)
         .collect::<Vec<i32>>()
         .iter()
         .sum()
@@ -216,7 +227,7 @@ fn expenses_total(expenses: &Vec<sqlite::Row>) -> i32 {
 
 fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32, no_highlight: bool) {
     let mut rows = get_expenses_vec(expenses);
-    
+
     if !no_highlight && rows.len() > 0 {
         rows[highlight_idx as usize] =
             format!("\x1b[43m\x1b[30m {} \x1b[0m", rows[highlight_idx as usize]);
