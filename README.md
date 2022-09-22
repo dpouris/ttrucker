@@ -1,30 +1,28 @@
 # Expense tracker
 
-Track your expenses in from your terminal and store them on an sqlite file
+Track your expenses in from your terminal with a simple UI
 
-## Installation
+----
+**A `db.sqlite` file will be created in the `/home/[user]/expenses` directory that will store all your expenses.**
+
+----
+
+# Installation
 
 Navigate to the cloned directory and run
 
 ```bash
-   ❯ source install.sh
+$ source install.sh
 ```
 
-## Usage
+# Usage
 
 ```bash
-   ❯ expenses
+$ expenses
 ```
 
-Output:
+# Example Usage
 
-```bash
-	Add expense
-	View expenses
-	Edit expense
-	Remove expense
-	Quit	
+![](./assets/ttrucker.gif)
 
-```
 
-The  db.sqlite  file will be created in them `/home/[user]/expenses` directory
