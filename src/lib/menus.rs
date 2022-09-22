@@ -1,9 +1,11 @@
 #![allow(unused)]
 
-use std::{collections::HashMap, thread::sleep, time::Duration};
+use std::{collections::HashMap, thread::sleep, time::Duration, vec};
 
 use crate::{
-    either, manager, printil, select,
+    either,
+    manager::{self, Manager},
+    printil, select,
     utils::{clear_term, get_input, hide_cursor, show_cursor},
 };
 use console::{Key, Term};
@@ -11,15 +13,12 @@ use console::{Key, Term};
 pub struct Menu {
     pub selected: i32,
     pub options: Vec<String>,
+    manager: Manager,
     term: Term,
 }
 
 impl Menu {
-    fn show_menu(menu: Vec<String>) {
-        println!("{}\r", menu.join("\n"));
-    }
-
-    pub fn new() -> Self {
+    pub fn new(manager: Manager) -> Self {
         let menu = Self {
             options: vec![
                 "Add expense".to_owned(),
@@ -29,6 +28,7 @@ impl Menu {
                 "Quit".to_owned(),
             ],
             selected: 1,
+            manager: manager,
             term: Term::stdout(),
         };
 
@@ -59,7 +59,7 @@ impl Menu {
         self.selected.to_string()
     }
 
-    pub fn open_add(&mut self, manager: &mut manager::Manager) {
+    pub fn open_add(&mut self) {
         let mut expense_name = "".to_string();
         let mut expense_amount = 0;
         clear_term();
@@ -95,16 +95,16 @@ impl Menu {
                 }
             }
 
-            manager.add_expense(&expense_name, expense_amount);
+            self.manager.add_expense(&expense_name, expense_amount);
             break;
         }
     }
 
-    pub fn open_view(&mut self, manager: &mut manager::Manager) {
+    pub fn open_view(&mut self) {
         loop {
             clear_term();
 
-            let expenses = manager.view_expenses();
+            let expenses = self.manager.view_expenses();
             let total_amount = expenses_total(&expenses);
             println!("\x1b[43m VIEW EXPENSES \x1b[0m\t\tTOTAL: {total_amount}\n");
 
@@ -121,40 +121,43 @@ impl Menu {
         }
     }
 
-    pub fn open_remove(&mut self, manager: &mut manager::Manager) {
+    pub fn open_remove(&mut self) {
         let mut highlight_idx = 0;
-        let mut expense_ids: HashMap<usize, String>;
+        let mut expense_ids: Vec<String>;
 
         loop {
             clear_term();
             println!("\x1b[43m REMOVE EXPENSE \x1b[0m\n");
 
-            let expenses = manager.view_expenses();
-            expense_ids = show_expenses(&expenses, highlight_idx);
+            let expenses = self.manager.view_expenses();
+            show_expenses(&expenses, highlight_idx);
+
+            expense_ids = get_expense_ids(&expenses);
             printil!("\nPress \x1b[31mENTER\x1b[0m to delete the selected expense or \x1b[33mESC\x1b[0m to exit");
 
             let expenses_len = expense_ids.len();
 
             let key = self.term.read_key().unwrap();
+            let to_delete = select!(key, highlight_idx, expenses_len);
             if key == Key::Escape {
                 return;
             }
 
-            let to_delete = select!(key, highlight_idx, expenses_len);
-
-            if let Some(item_id) = to_delete {
-                let expense_id = expense_ids.get(&(item_id as usize));
-
-                if let Some(id) = expense_id {
-                    manager.remove_expense(&id);
+            if let Some(item_idx) = to_delete {
+                if expenses_len > 0 {
+                    self.manager.remove_expense(&expense_ids[item_idx as usize]);
                     highlight_idx = 0;
-                } 
+                }
             }
         }
     }
+
+    fn show_menu(menu: Vec<String>) {
+        println!("{}\r", menu.join("\n"));
+    }
 }
 
-pub fn expenses_total(expenses: &Vec<sqlite::Row>) -> i32 {
+fn expenses_total(expenses: &Vec<sqlite::Row>) -> i32 {
     expenses
         .iter()
         .map(|row| row.try_get::<i64, usize>(2).unwrap_or_default() as i32)
@@ -163,23 +166,34 @@ pub fn expenses_total(expenses: &Vec<sqlite::Row>) -> i32 {
         .sum()
 }
 
-fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32) -> HashMap<usize, String> {
-    // println!("ID\tName\t\tAmount\n");
-    let mut expense_ids: HashMap<usize, String> = HashMap::new();
+fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32) {
+    let mut rows = get_expenses_vec(expenses);
+
+    if rows.len() > 0 {
+        rows[highlight_idx as usize] =
+            format!("\x1b[43m\x1b[30m {} \x1b[0m", rows[highlight_idx as usize]);
+    }
+
+    println!(
+        "\x1b[4mName{}Amount\x1b[0m\n",
+        (0..20).map(|_| " ").collect::<String>()
+    );
+
+    if rows.len() == 0 {
+        println!("\x1b[31mNo expenses\x1b[0m");
+    } else {
+        println!("{}", rows.join("\n"));
+    }
+}
+
+fn get_expenses_vec(expenses: &[sqlite::Row]) -> Vec<String> {
     let mut current_idx: usize = 0;
 
     let gather_row = |row: &sqlite::Row| {
-        let row_id = row.try_get::<i64, &str>("id");
         let row_name = row.try_get::<String, &str>("name");
         let row_amount = row.try_get::<i64, usize>(2);
 
         let mut row = "".to_owned();
-
-        if let Ok(id) = row_id {
-            expense_ids.insert(current_idx, id.to_string());
-            current_idx += 1;
-        }
-
 
         if let Ok(name) = row_name {
             row.push_str(&format!("{name}"));
@@ -198,20 +212,17 @@ fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32) -> HashMap<usize,
 
     let mut rows = expenses.iter().map(gather_row).collect::<Vec<String>>();
 
-    if rows.len() > 0 {
-        rows[highlight_idx as usize] =
-            format!("\x1b[43m\x1b[30m {} \x1b[0m", rows[highlight_idx as usize]);
-    }
+    rows
+}
 
-    println!(
-        "\x1b[4mName{}Amount\x1b[0m\n",
-        (0..20).map(|_| " ").collect::<String>()
-    );
+fn get_expense_ids(expenses: &[sqlite::Row]) -> Vec<String> {
+    let mut expense_ids = vec![];
+    for (idx, expense_row) in expenses.iter().enumerate() {
+        let row_id = expense_row.try_get::<i64, &str>("id");
 
-    if rows.len() == 0 {
-        println!("\x1b[31mNo expenses\x1b[0m");
-    } else {
-        println!("{}", rows.join("\n"));
+        if let Ok(id) = row_id {
+            expense_ids.push(id.to_string());
+        }
     }
 
     expense_ids

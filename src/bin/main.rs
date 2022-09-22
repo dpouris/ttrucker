@@ -71,8 +71,8 @@ fn main() {
         // check if user has a expenses/db.sqlite if he doesn't create it
         let manager_res = prepare_manager(&path_to_sqlite, &home);
         if let Ok(man) = manager_res {
-            let mut menu = Menu::new();
-            let mut manager = man;
+            let manager = man;
+            let mut menu = Menu::new(manager);
 
             loop {
                 menu.highlight(1);
@@ -81,10 +81,10 @@ fn main() {
                 let func = parse_input(opt.as_str());
 
                 match func.unwrap() {
-                    Function::Add => menu.open_add(&mut manager),
-                    Function::View => menu.open_view(&mut manager),
+                    Function::Add => menu.open_add(),
+                    Function::View => menu.open_view(),
                     Function::Edit => (),
-                    Function::Remove => menu.open_remove(&mut manager),
+                    Function::Remove => menu.open_remove(),
                     Function::Quit => {
                         clear_term();
                         break;
