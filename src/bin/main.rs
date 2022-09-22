@@ -83,7 +83,7 @@ fn main() {
                 match func.unwrap() {
                     Function::Add => menu.open_add(),
                     Function::View => menu.open_view(),
-                    Function::Edit => (),
+                    Function::Edit => menu.open_edit(),
                     Function::Remove => menu.open_remove(),
                     Function::Quit => {
                         clear_term();

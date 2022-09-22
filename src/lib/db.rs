@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration, thread::sleep};
 
 use sqlite::{self, Connection};
 
@@ -43,6 +43,13 @@ impl DB {
         rows
     }
 
+    pub fn select_from_limit(&mut self, table_name: &str, id: &str, limit: i32) -> sqlite::Result<sqlite::Row> {
+        let statement = format!("SELECT * FROM {} WHERE id = {} LIMIT {}",table_name, id, limit);
+        let cursor = self.connection.prepare(statement).unwrap().into_cursor();
+
+        cursor.last().unwrap()
+    }
+
     pub fn insert_into(
         &mut self,
         table_name: &str,
@@ -58,6 +65,14 @@ impl DB {
         let mut values_string = values.join(", ");
         values_string.push_str(");");
         statement.push_str(&values_string);
+
+        self.connection.execute(statement)?;
+
+        Ok(())
+    }
+
+    pub fn update_where(&mut self, table_name: &str, id: &str, to_set: &[&str;2]) -> sqlite::Result<()> {
+        let statement = format!("UPDATE {} SET {} = {} WHERE id = {}",table_name, to_set[0],to_set[1], id);
 
         self.connection.execute(statement)?;
 

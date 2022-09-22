@@ -1,4 +1,4 @@
-use crate::db;
+use crate::{db, either};
 use std::collections::HashMap;
 
 pub struct Manager {
@@ -23,8 +23,18 @@ impl Manager {
         self.db.insert_into("expenses", columns, values);
     }
 
-    pub fn view_expenses(&mut self) -> Vec<sqlite::Row> {
+    pub fn get_expenses(&mut self) -> Vec<sqlite::Row> {
         self.db.select_from("expenses")
+    }
+
+    pub fn get_single_expense(&mut self, expense_id: &str) -> sqlite::Row {
+        self.db.select_from_limit("expenses", expense_id, 1).unwrap()
+    }
+
+    pub fn edit_expense(&mut self, expense_id: &str, to_set: &[&str;2]) {
+        let field_val = either!(to_set[0] == "name", format!("'{}'",to_set[1]); to_set[1].to_owned());
+        let fields: [&str;2] = [to_set[0], &field_val];
+        self.db.update_where("expenses", expense_id, &fields);
     }
 
     pub fn remove_expense(&mut self, expense_id: &str) {
