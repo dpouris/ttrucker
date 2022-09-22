@@ -224,7 +224,7 @@ fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32, no_highlight: boo
 
     println!(
         "\x1b[4mName{}Amount\x1b[0m\n",
-        (0..20).map(|_| " ").collect::<String>()
+        (0..50).map(|_| " ").collect::<String>()
     );
 
     if rows.len() == 0 {
@@ -237,7 +237,7 @@ fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32, no_highlight: boo
 fn get_expenses_vec(expenses: &[sqlite::Row]) -> Vec<String> {
     let gather_row = |row: &sqlite::Row| {
         let row_name = row.try_get::<String, &str>("name");
-        let row_amount = row.try_get::<i64, usize>(2);
+        let row_amount = row.try_get::<i64, &str>("amount");
 
         let mut row = "".to_owned();
 
@@ -247,7 +247,7 @@ fn get_expenses_vec(expenses: &[sqlite::Row]) -> Vec<String> {
 
         if let Ok(amount) = row_amount {
             row.push_str(
-                &(0..30 - (row.len() + amount.to_string().len()))
+                &(0..60 - (row.len() + amount.to_string().len()))
                     .map(|_| " ")
                     .collect::<String>(),
             );
