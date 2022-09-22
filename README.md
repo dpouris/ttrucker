@@ -19,13 +19,12 @@ Navigate to the cloned directory and run
 Output:
 
 ```bash
-   ❯ expenses
-   1. Add expense
-   2. View expenses
-   3. Edit expense
-   4. Delete expense
-   5. Quit
-   ❯
+	Add expense
+	View expenses
+	Edit expense
+	Remove expense
+	Quit	
+
 ```
 
 The  db.sqlite  file will be created in them `/home/[user]/expenses` directory

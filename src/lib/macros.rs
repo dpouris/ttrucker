@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! select {
-    ($key: ident, $idx: ident, $max_idx: expr, $($highlight: tt)*) => {
+    ($key: ident, $idx: ident, $max_idx: ident, $($highlight: tt)*) => {
             match $key {
                 Key::ArrowUp => {
                     if $idx > 1 {
@@ -19,22 +19,23 @@ macro_rules! select {
             }
     };
 
-    ($key: ident, $idx: ident, $max_idx: tt) => {
-            match $key {
-                Key::ArrowUp => {
-                    if $idx > 1 {
-                        $idx -= 1;
-                    }
+    ($key: ident, $idx: ident, $max_idx: ident) => {
+        match $key {
+            Key::ArrowUp => {
+                if $idx >= 1 {
+                    $idx -= 1;
                 }
-                Key::ArrowDown => {
-                    if $idx != $max_idx as i32 {
-                        $idx += 1;
-                    }
+                None
+            },
+            Key::ArrowDown => {
+                if $idx < $max_idx as i32 - 1 {
+                    $idx += 1;
                 }
-                Key::Enter => break,
-                _ => (),
-            }
-        $idx
+                None
+            },
+            Key::Enter => Some($idx),
+            _ => None,
+        }
     }
 }
 
