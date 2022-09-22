@@ -1,4 +1,4 @@
-use std::vec;
+use std::{vec, thread::sleep, time::Duration};
 
 use crate::{
     either,
@@ -102,18 +102,47 @@ impl Menu {
         loop {
             clear_term();
 
-            let expenses = self.manager.view_expenses();
+            let expenses = self.manager.get_expenses();
             let total_amount = expenses_total(&expenses);
             println!("\x1b[43m VIEW EXPENSES \x1b[0m\t\tTOTAL: {total_amount}\n");
 
             show_expenses(&expenses, 0, true);
-            printil!("\nPress \x1b[33mENTER\x1b[0m to go back");
+            printil!("\nPress \x1b[33mANY KEY\x1b[0m to go back");
 
-            let input = get_input();
+            let key = self.term.read_key();
 
-            if let Ok(cmd) = input {
-                if cmd == "" {
-                    break;
+            if let Ok(_) = key {
+                break
+            }
+        }
+    }
+
+    pub fn open_edit(&mut self) {
+        let mut highlight_idx = 0;
+        
+        loop {
+            let expenses = self.manager.get_expenses();
+            let expense_ids = get_expense_ids(&expenses);
+            let expenses_len = expenses.len();
+            clear_term();
+            println!("\x1b[43m EDIT EXPENSE \x1b[0m\n");
+            
+            show_expenses(&expenses, highlight_idx, false);
+            printil!("\nPress \x1b[33mENTER\x1b[0m to edit the selected expense or \x1b[33mESC\x1b[0m to exit");
+            
+            let key = self.term.read_key().unwrap();
+            
+            let to_edit = select!(key, highlight_idx, expenses_len);
+            if key == Key::Escape {
+                return;
+            }
+
+            
+            if let Some(item_idx) = to_edit {
+                let expense_id = expense_ids[item_idx as usize].clone();
+                if expenses_len > 0 {
+                    self.edit_expense(&expense_id);
+                    highlight_idx = 0;
                 }
             }
         }
@@ -127,13 +156,14 @@ impl Menu {
             clear_term();
             println!("\x1b[43m REMOVE EXPENSE \x1b[0m\n");
 
-            let expenses = self.manager.view_expenses();
+            let expenses = self.manager.get_expenses();
+            expense_ids = get_expense_ids(&expenses);
+            let expenses_len = expense_ids.len();
+
             show_expenses(&expenses, highlight_idx, false);
 
-            expense_ids = get_expense_ids(&expenses);
             printil!("\nPress \x1b[31mENTER\x1b[0m to delete the selected expense or \x1b[33mESC\x1b[0m to exit");
 
-            let expenses_len = expense_ids.len();
 
             let key = self.term.read_key().unwrap();
             let to_delete = select!(key, highlight_idx, expenses_len);
@@ -152,6 +182,26 @@ impl Menu {
 
     fn show_menu(menu: Vec<String>) {
         println!("{}\r", menu.join("\n"));
+    }
+
+    fn edit_expense(&mut self, expense_id: &str) {
+        let mut highlight = 0;
+        let expense = get_name_amount(&self.manager.get_single_expense(expense_id));
+        loop {
+            clear_term();
+            let mut expense_cp = expense.clone();
+            expense_cp[highlight as usize] = format!("\x1b[47m{}\x1b[0m",expense_cp[highlight as usize]); 
+            println!(" {} \n {}", expense_cp[0], expense_cp[1]);
+            let key = self.term.read_key().unwrap();
+
+            let edit_field = select!(key, highlight, 2);
+            
+            if let Some(field) = edit_field {
+                let new_field_value = self.term.read_line_initial_text(&expense[highlight as usize]).unwrap();
+                self.manager.edit_expense(&expense_id, &[if field == 0 {"name"} else {"amount"}, new_field_value.as_str()]);
+                break;
+            }
+        }
     }
 }
 
@@ -222,4 +272,11 @@ fn get_expense_ids(expenses: &[sqlite::Row]) -> Vec<String> {
     }
 
     expense_ids
+}
+
+fn get_name_amount(expense: &sqlite::Row) -> [String; 2] {
+    let expense_name = expense.try_get::<String, &str>("name").unwrap();
+    let expense_amount = expense.try_get::<i64, &str>("amount").unwrap();
+
+    [expense_name, expense_amount.to_string()]
 }

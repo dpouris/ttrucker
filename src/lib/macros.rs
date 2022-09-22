@@ -19,7 +19,7 @@ macro_rules! select {
             }
     };
 
-    ($key: ident, $idx: ident, $max_idx: ident) => {
+    ($key: ident, $idx: ident, $max_idx: tt) => {
         match $key {
             Key::ArrowUp => {
                 if $idx >= 1 {
