@@ -19,7 +19,11 @@
 // 4. Enter a menu that lists all the expenses along with indicative numbers to choose in order to delete it (remove from db after)
 // NOTE: When the user is in the main menu show the total of all expenses
 
-use lib::{manager, menus::*, utils::{clear_term, show_cursor, hide_cursor}};
+use lib::{
+    manager,
+    menus::*,
+    utils::{clear_term, hide_cursor, show_cursor},
+};
 use std::{fs, process};
 
 enum Function {
@@ -62,8 +66,6 @@ fn prepare_manager(path: &str, home: &str) -> Result<manager::Manager, ()> {
 fn main() {
     let home = option_env!("HOME");
 
-    // Hide cursor
-    hide_cursor();
     if let Some(home) = home {
         let path_to_sqlite = format!("{}/expenses/db.sqlite", &home);
         // check if user has a expenses/db.sqlite if he doesn't create it

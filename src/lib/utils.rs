@@ -1,5 +1,5 @@
+use crate::printil;
 use std::io::Result;
-use crate::{printil};
 
 pub fn get_input() -> Result<String> {
     let mut buffer = String::new();
