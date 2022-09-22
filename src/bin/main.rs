@@ -22,7 +22,7 @@
 use lib::{
     manager,
     menus::*,
-    utils::{clear_term, hide_cursor, show_cursor},
+    utils::{clear_term, show_cursor},
 };
 use std::{fs, process};
 

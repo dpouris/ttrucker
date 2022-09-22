@@ -37,7 +37,7 @@ impl DB {
         let mut rows = vec![];
 
         for row in cursor {
-            row.and_then(|v| Ok(rows.push(v)));
+            _ = row.and_then(|v| Ok(rows.push(v)));
         }
 
         rows
@@ -67,7 +67,11 @@ impl DB {
     pub fn delete_from(&mut self, table_name: &str, filter: &str) {
         let statement = format!("DELETE FROM {table_name} WHERE {filter}");
 
-        self.connection.execute(statement);
+        let res = self.connection.execute(statement);
+
+        if let Err(msg) = res {
+            eprintln!("ERROR: {}", msg)
+        }
     }
 }
 

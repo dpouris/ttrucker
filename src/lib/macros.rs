@@ -56,7 +56,7 @@ macro_rules! printil {
     ($x:tt) => {
         use std::io::{stdout, Write};
         print!("{}",$x);
-        stdout().flush();
+        _ = stdout().flush();
     };
 
     ($($x:tt)+$($i:ident),*) => {

@@ -1,10 +1,10 @@
-#![allow(unused)]
+// #![allow(unused)]
 
-use std::{collections::HashMap, thread::sleep, time::Duration, vec};
+use std::{vec};
 
 use crate::{
     either,
-    manager::{self, Manager},
+    manager::{Manager},
     printil, select,
     utils::{clear_term, get_input, hide_cursor, show_cursor},
 };
@@ -187,8 +187,6 @@ fn show_expenses(expenses: &[sqlite::Row], highlight_idx: i32) {
 }
 
 fn get_expenses_vec(expenses: &[sqlite::Row]) -> Vec<String> {
-    let mut current_idx: usize = 0;
-
     let gather_row = |row: &sqlite::Row| {
         let row_name = row.try_get::<String, &str>("name");
         let row_amount = row.try_get::<i64, usize>(2);
@@ -210,14 +208,14 @@ fn get_expenses_vec(expenses: &[sqlite::Row]) -> Vec<String> {
         row
     };
 
-    let mut rows = expenses.iter().map(gather_row).collect::<Vec<String>>();
+    let rows = expenses.iter().map(gather_row).collect::<Vec<String>>();
 
     rows
 }
 
 fn get_expense_ids(expenses: &[sqlite::Row]) -> Vec<String> {
     let mut expense_ids = vec![];
-    for (idx, expense_row) in expenses.iter().enumerate() {
+    for expense_row in expenses.iter() {
         let row_id = expense_row.try_get::<i64, &str>("id");
 
         if let Ok(id) = row_id {
